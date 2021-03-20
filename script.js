@@ -18,6 +18,22 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     let animation_id;
 
+    let audio_context, source_sound, analyzer, array_of_freq;
+
+    function make_connect(){
+        audio_context = new AudioContext();
+        source_sound = audio_context.createMediaElementSource(audio);
+        analyzer = audio_context.createAnalyser();
+        source_sound.connect(analyzer);
+        analyzer.connect(audio_context.destination);
+    }
+
+    audio.addEventListener("play", ()=>{
+        if(!audio_context){
+            make_connect();
+        }
+    });
+
     // Обработчики событий бегунков, которые изменяют параметры отрисовки
     new_radius.addEventListener("change", ()=>{
         properties.radius = ((+new_radius.value) / 100) * 15;
@@ -39,7 +55,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     });
 
     new_life_circle.addEventListener("change", ()=>{
-        properties.life_circle = ((+new_life_circle.value) / 100) * 10;
+        properties.life_circle = ((+new_life_circle.value) / 100) * 20;
     });
 
     window.onresize = ()=>{
@@ -55,19 +71,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
             this.speed_x = Math.random() * 2 * properties.speed - properties.speed;     // Данная запись явл. более понятной
             this.speed_y = Math.random() * 2 * properties.speed - properties.speed;
             this.life = Math.random() * properties.life_circle * 60;
+            this.color = `rgb(${Math.round(Math.random()* 255)}, ${Math.round(Math.random()* 255)}, ${Math.round(Math.random()* 255)})`;
         }
 
         //Иммитация смерти кружка
-        delete_and_create_new_circle(){
-            if(this.life < 1){
-                this.x = Math.round(Math.random() * canvas.width),
-                this.y = Math.round(Math.random() * canvas.height)
-                this.speed_x = Math.random() * 2 * properties.speed - properties.speed;
-                this.speed_y = Math.random() * 2 * properties.speed - properties.speed;
-                this.life = Math.random() * properties.life_circle * 60;
-            }
-            this.life--;
-        }
+        // delete_and_create_new_circle(){
+        //     if(this.life < 1){
+        //         this.x = Math.round(Math.random() * canvas.width),
+        //         this.y = Math.round(Math.random() * canvas.height)
+        //         this.speed_x = Math.random() * 2 * properties.speed - properties.speed;
+        //         this.speed_y = Math.random() * 2 * properties.speed - properties.speed;
+        //         this.life = Math.random() * properties.life_circle * 60;
+        //     }
+        //     this.life--;
+        // }
     }
     
     function create_circle(){
@@ -82,11 +99,21 @@ document.addEventListener("DOMContentLoaded", ()=>{
     }
 
     function draw_circles(){
-        array_of_circle.forEach(circle =>{
+
+        if(audio_context){
+            array_of_freq = new Uint8Array(array_of_circle.length);
+            analyzer.getByteFrequencyData(array_of_freq);
+        }
+
+        array_of_circle.forEach((circle, index) =>{
             context.beginPath();
-            context.arc(circle.x, circle.y, properties.radius, 0, Math.PI * 2, true);
+            if(!audio_context || audio.paused){
+                context.arc(circle.x, circle.y, properties.radius, 0, Math.PI * 2, true);
+            }else{
+                context.arc(circle.x, circle.y,  (array_of_freq[index] / 127) * properties.radius, 0, Math.PI * 2, true);
+            }
             context.closePath();
-            context.fillStyle = "red";
+            context.fillStyle = circle.color;
             context.fill();
 
             circle.x += circle.speed_x;
@@ -114,6 +141,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     function draw_line(){
         let x1, x2, y1, y2, opacity, length;
         for(let i = 0; i < array_of_circle.length; i++){
+            let color = `rgb(${Math.round(Math.random()* 255)}, ${Math.round(Math.random()* 255)}, ${Math.round(Math.random()* 255)})`; //Temp changing color
             for(let j = 0; j < array_of_circle.length; j++){
                 x1 = array_of_circle[i].x;
                 x2 = array_of_circle[j].x;
@@ -123,7 +151,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 if(length < properties.length){
                     opacity = 1 - length / properties.length;
                     context.lineWidth = 0.5;
-                    context.strokeStyle = "rgba(209, 19, 19, " + opacity + ")";
+                    // context.strokeStyle = "rgba(209, 19, 19, " + opacity + ")";
+                    context.strokeStyle = color;    //Temp changing color
                     context.beginPath();
                     context.moveTo(x1, y1);
                     context.lineTo(x2, y2);
@@ -134,7 +163,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
 
     }
-
 
     function draw_content(){
         animation_id = requestAnimationFrame(draw_content);
@@ -148,7 +176,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
         draw_content();  //Многократынй вызов. Отвечает за создание анимации
     }
 
-
     main();
+   
+
 
 });

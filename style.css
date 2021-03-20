@@ -26,10 +26,17 @@ p:nth-child(1){
     margin-top: 0px;
 }
 
-p:nth-child(5){
+/* p:nth-child(5){
     margin-bottom: 0px;
-}
+} */
 
 .panel_control input{
     display: block;
+}
+
+.panel_control audio{
+    height: 20px;
+    background-color: #f1f3f4;
+    width: 100%;
+    outline: none;
 }
